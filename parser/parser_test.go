@@ -18,6 +18,7 @@ let foobar = 838383;
 	p := parser.New(l)
 
 	program := p.ParseProgram()
+	checkParserErrors(t, p)
 	if program == nil {
 		// NOTE: Fatal系はメソッドの実行を即座に終了させるが、 Error系はテストを失敗扱いにして
 		// 処理はそのまま継続する
@@ -45,6 +46,19 @@ let foobar = 838383;
 			return
 		}
 	}
+}
+
+func checkParserErrors(t *testing.T, p *parser.Parser) {
+	errors := p.Errors()
+	if len(errors) == 0 {
+		return
+	}
+
+	t.Errorf("parser has %d errors", len(errors))
+	for _, msg := range errors {
+		t.Errorf("parser error: %q", msg)
+	}
+	t.FailNow()
 }
 
 func testLetStatement(t *testing.T, s ast.Statement, name string) bool {

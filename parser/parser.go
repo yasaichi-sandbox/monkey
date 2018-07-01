@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"github.com/yasaichi-sandbox/monkey/ast"
 	"github.com/yasaichi-sandbox/monkey/lexer"
 	"github.com/yasaichi-sandbox/monkey/token"
@@ -8,17 +9,22 @@ import (
 
 type Parser struct {
 	l         *lexer.Lexer
+	errors    []string
 	curToken  token.Token
 	peekToken token.Token
 }
 
 func New(l *lexer.Lexer) *Parser {
-	p := Parser{l: l}
+	p := Parser{l: l, errors: []string{}}
 
 	p.nextToken()
 	p.nextToken()
 
 	return &p
+}
+
+func (p *Parser) Errors() []string {
+	return p.errors
 }
 
 func (p *Parser) ParseProgram() *ast.Program {
@@ -47,6 +53,7 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 		return true
 	}
 
+	p.peekError(t)
 	return false
 }
 
@@ -88,6 +95,16 @@ func (p *Parser) parseStatement() ast.Statement {
 	default:
 		return nil
 	}
+}
+
+func (p *Parser) peekError(t token.TokenType) {
+	msg := fmt.Sprintf(
+		"expected next token to be %s, got %s instead",
+		t,
+		p.peekToken.Type,
+	)
+
+	p.errors = append(p.errors, msg)
 }
 
 func (p *Parser) peekTokenIs(t token.TokenType) bool {
