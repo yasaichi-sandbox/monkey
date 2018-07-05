@@ -7,11 +7,19 @@ import (
 	"github.com/yasaichi-sandbox/monkey/token"
 )
 
+type (
+	prefixParseFn func() ast.Expression
+	// NOTE: infixは挿入辞の意。引数の式は中置演算子の左オペランド（被演算子）
+	infixParseFn func(ast.Expression) ast.Expression
+)
+
 type Parser struct {
-	l         *lexer.Lexer
-	errors    []string
-	curToken  token.Token
-	peekToken token.Token
+	l              *lexer.Lexer
+	errors         []string
+	curToken       token.Token
+	peekToken      token.Token
+	prefixParseFns map[token.TokenType]prefixParseFn
+	infixParseFns  map[token.TokenType]infixParseFn
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -126,4 +134,12 @@ func (p *Parser) peekError(t token.TokenType) {
 
 func (p *Parser) peekTokenIs(t token.TokenType) bool {
 	return p.peekToken.Type == t
+}
+
+func (p *Parser) registerInfix(tokenType token.TokenType, fn infixParseFn) {
+	p.infixParseFns[tokenType] = fn
+}
+
+func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
+	p.prefixParseFns[tokenType] = fn
 }
