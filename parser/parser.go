@@ -7,6 +7,17 @@ import (
 	"github.com/yasaichi-sandbox/monkey/token"
 )
 
+// NOTE: 定数宣言文内で代入値を省略すると、前回の代入と同じ値が代入されるんでしたね
+const (
+	LOWEST      = 1 + iota
+	EQUALS      // ==
+	LESSGREATER // > or <
+	SUM         // +
+	PRODUCT     // *
+	PREFIX      // -x or !x
+	CALL        // myFuncion(x)
+)
+
 type (
 	prefixParseFn func() ast.Expression
 	// NOTE: infixは挿入辞の意。引数の式は中置演算子の左オペランド（被演算子）
@@ -24,6 +35,11 @@ type Parser struct {
 
 func New(l *lexer.Lexer) *Parser {
 	p := Parser{l: l, errors: []string{}}
+
+	p.prefixParseFns = map[token.TokenType]prefixParseFn{}
+	// NOTE: [レシーバ].[メソッド]の形で取り出した関数にはレシーバが埋め込まれる。ここらへん
+	// Pythonの挙動と全く同じ
+	p.registerPrefix(token.IDENT, p.parseIdentifier)
 
 	p.nextToken()
 	p.nextToken()
@@ -68,6 +84,36 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 func (p *Parser) nextToken() {
 	p.curToken = p.peekToken
 	p.peekToken = p.l.NextToken()
+}
+
+func (p *Parser) parseExpression(precedence int) ast.Expression {
+	// NOTE: `parseExpression`が呼ばれたときのcurTokenは式の始まりなので必ず前置された
+	// トークン（≠演算子）のはず
+	prefix := p.prefixParseFns[p.curToken.Type]
+	if prefix == nil {
+		return nil
+	}
+
+	leftExp := prefix()
+
+	return leftExp
+}
+
+func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	// NOTE: 今のところTokenの値としてこれが適切だとは思えない
+	stmt := &ast.ExpressionStatement{Token: p.curToken}
+	stmt.Expression = p.parseExpression(LOWEST)
+
+	// NOTE: 式文であれば末尾のセミコロンを省略できるようにするため
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return stmt
+}
+
+func (p *Parser) parseIdentifier() ast.Expression {
+	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 }
 
 // let keyakizaka = 46;
@@ -118,7 +164,7 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.RETURN:
 		return p.parseReturnStatement()
 	default:
-		return nil
+		return p.parseExpressionStatement()
 	}
 }
 
