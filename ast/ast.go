@@ -44,22 +44,6 @@ func (p *Program) TokenLiteral() string {
 	}
 }
 
-type Identifier struct {
-	Token token.Token
-	Value string
-}
-
-func (i *Identifier) String() string {
-	// NOTE: 今のところ`i.Token.Literal`との違いがわかっていない
-	return i.Value
-}
-
-func (i *Identifier) TokenLiteral() string {
-	return i.Token.Literal
-}
-
-func (*Identifier) expressionNode() {}
-
 type ExpressionStatement struct {
 	Token      token.Token
 	Expression Expression
@@ -132,3 +116,34 @@ func (rs *ReturnStatement) TokenLiteral() string {
 }
 
 func (*ReturnStatement) statementNode() {}
+
+type Identifier struct {
+	Token token.Token
+	Value string
+}
+
+func (i *Identifier) String() string {
+	// NOTE: 今のところ`i.Token.Literal`との違いがわかっていない
+	return i.Value
+}
+
+func (i *Identifier) TokenLiteral() string {
+	return i.Token.Literal
+}
+
+func (*Identifier) expressionNode() {}
+
+type IntegerLiteral struct {
+	Token token.Token
+	Value int64 // NOTE: ソースコード中の整数リテラルが表現している実際の値を格納する
+}
+
+func (il *IntegerLiteral) String() string {
+	return il.Token.Literal
+}
+
+func (il *IntegerLiteral) TokenLiteral() string {
+	return il.Token.Literal
+}
+
+func (*IntegerLiteral) expressionNode() {}

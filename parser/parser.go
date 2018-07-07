@@ -5,6 +5,7 @@ import (
 	"github.com/yasaichi-sandbox/monkey/ast"
 	"github.com/yasaichi-sandbox/monkey/lexer"
 	"github.com/yasaichi-sandbox/monkey/token"
+	"strconv"
 )
 
 // NOTE: 定数宣言文内で代入値を省略すると、前回の代入と同じ値が代入されるんでしたね
@@ -40,6 +41,7 @@ func New(l *lexer.Lexer) *Parser {
 	// NOTE: [レシーバ].[メソッド]の形で取り出した関数にはレシーバが埋め込まれる。ここらへん
 	// Pythonの挙動と全く同じ
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
+	p.registerPrefix(token.INT, p.parseIntegerLiteral)
 
 	p.nextToken()
 	p.nextToken()
@@ -112,8 +114,27 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	return stmt
 }
 
+// keyakizaka * 46
+//     └ p.curToken
 func (p *Parser) parseIdentifier() ast.Expression {
 	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+}
+
+// keyakizaka * 46
+//               └ p.curToken
+func (p *Parser) parseIntegerLiteral() ast.Expression {
+	lit := &ast.IntegerLiteral{Token: p.curToken}
+
+	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %q as integer", p.curToken.Literal)
+		p.errors = append(p.errors, msg)
+
+		return nil
+	}
+
+	lit.Value = value
+	return lit
 }
 
 // let keyakizaka = 46;
