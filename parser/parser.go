@@ -42,6 +42,8 @@ func New(l *lexer.Lexer) *Parser {
 	// Pythonの挙動と全く同じ
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
+	p.registerPrefix(token.BANG, p.parsePrefixExpression)
+	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 
 	p.nextToken()
 	p.nextToken()
@@ -88,11 +90,17 @@ func (p *Parser) nextToken() {
 	p.peekToken = p.l.NextToken()
 }
 
+func (p *Parser) noPrefixParseFnError(t token.TokenType) {
+	msg := fmt.Sprintf("no prefix parse function for %s found", t)
+	p.errors = append(p.errors, msg)
+}
+
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	// NOTE: `parseExpression`が呼ばれたときのcurTokenは式の始まりなので必ず前置された
 	// トークン（≠演算子）のはず
 	prefix := p.prefixParseFns[p.curToken.Type]
 	if prefix == nil {
+		p.noPrefixParseFnError(p.curToken.Type)
 		return nil
 	}
 
@@ -161,6 +169,21 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	}
 
 	return stmt
+}
+
+// !nogizaka46;
+// └ p.curToken
+func (p *Parser) parsePrefixExpression() ast.Expression {
+	expression := &ast.PrefixExpression{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+	}
+
+	p.nextToken()
+
+	expression.Right = p.parseExpression(PREFIX)
+
+	return expression
 }
 
 // return keyakizaka(46);
