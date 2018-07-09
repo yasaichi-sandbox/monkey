@@ -133,6 +133,31 @@ func (i *Identifier) TokenLiteral() string {
 
 func (*Identifier) expressionNode() {}
 
+type InfixExpression struct {
+	Token    token.Token // 演算子トークン、例えば「+」
+	Left     Expression
+	Operator string
+	Right    Expression
+}
+
+func (oe *InfixExpression) String() string {
+	return oe.Token.Literal
+}
+
+func (oe *InfixExpression) TokenLiteral() string {
+	var out bytes.Buffer
+
+	out.WriteString("(")
+	out.WriteString(oe.Right.String())
+	out.WriteString(" " + oe.Operator + " ")
+	out.WriteString(oe.Right.String())
+	out.WriteString(")")
+
+	return out.String()
+}
+
+func (*InfixExpression) expressionNode() {}
+
 type IntegerLiteral struct {
 	Token token.Token
 	Value int64 // NOTE: ソースコード中の整数リテラルが表現している実際の値を格納する
