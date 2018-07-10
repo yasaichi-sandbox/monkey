@@ -19,6 +19,19 @@ const (
 	CALL        // myFuncion(x)
 )
 
+// NOTE: constの値はcompile timeで評価・決定されるが、mapはruntimeで評価されるのでvarを
+// 使うしかない
+var precedences = map[token.TokenType]int{
+	token.EQ:       EQUALS,
+	token.NOT_EQ:   EQUALS,
+	token.LT:       LESSGREATER,
+	token.GT:       LESSGREATER,
+	token.PLUS:     SUM,
+	token.MINUS:    SUM,
+	token.SLASH:    PRODUCT,
+	token.ASTERISK: PRODUCT,
+}
+
 type (
 	prefixParseFn func() ast.Expression
 	// NOTE: infixは挿入辞の意。引数の式は中置演算子の左オペランド（被演算子）
@@ -45,6 +58,16 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 
+	p.infixParseFns = map[token.TokenType]infixParseFn{}
+	p.registerInfix(token.PLUS, p.parseInfixExpression)
+	p.registerInfix(token.MINUS, p.parseInfixExpression)
+	p.registerInfix(token.SLASH, p.parseInfixExpression)
+	p.registerInfix(token.ASTERISK, p.parseInfixExpression)
+	p.registerInfix(token.EQ, p.parseInfixExpression)
+	p.registerInfix(token.NOT_EQ, p.parseInfixExpression)
+	p.registerInfix(token.LT, p.parseInfixExpression)
+	p.registerInfix(token.GT, p.parseInfixExpression)
+
 	p.nextToken()
 	p.nextToken()
 
@@ -69,6 +92,14 @@ func (p *Parser) ParseProgram() *ast.Program {
 	}
 
 	return program
+}
+
+func (p *Parser) curPrecedence() int {
+	if p, ok := precedences[p.curToken.Type]; ok {
+		return p
+	}
+
+	return LOWEST
 }
 
 func (p *Parser) curTokenIs(t token.TokenType) bool {
@@ -106,6 +137,20 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 
 	leftExp := prefix()
 
+	// NOTE: ループの停止条件は 1. 次のトークンがセミコロンのとき または 2.現在の関数呼び出しの
+	// コンテクストの演算子が次の演算子トークンと優先順位が同じまたは高いとき、なのは読み取れるが、
+	// これでなぜ動作するのかは現時点で全くわからない
+	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
+		infix := p.infixParseFns[p.peekToken.Type]
+		if infix == nil {
+			return leftExp
+		}
+
+		p.nextToken()
+
+		leftExp = infix(leftExp)
+	}
+
 	return leftExp
 }
 
@@ -126,6 +171,23 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 //     └ p.curToken
 func (p *Parser) parseIdentifier() ast.Expression {
 	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+}
+
+// keyakizaka * 46
+//            └ p.curToken
+func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
+	expression := &ast.InfixExpression{
+		Token:    p.curToken,
+		Left:     left,
+		Operator: p.curToken.Literal,
+	}
+	precedence := p.curPrecedence()
+
+	p.nextToken()
+
+	expression.Right = p.parseExpression(precedence)
+
+	return expression
 }
 
 // keyakizaka * 46
@@ -220,6 +282,14 @@ func (p *Parser) peekError(t token.TokenType) {
 	)
 
 	p.errors = append(p.errors, msg)
+}
+
+func (p *Parser) peekPrecedence() int {
+	if p, ok := precedences[p.peekToken.Type]; ok {
+		return p
+	}
+
+	return LOWEST
 }
 
 func (p *Parser) peekTokenIs(t token.TokenType) bool {
