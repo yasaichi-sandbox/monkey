@@ -51,7 +51,7 @@ type ExpressionStatement struct {
 
 func (es *ExpressionStatement) String() string {
 	if es.Expression != nil {
-		es.Expression.String()
+		return es.Expression.String()
 	}
 
 	return ""
@@ -141,19 +141,19 @@ type InfixExpression struct {
 }
 
 func (oe *InfixExpression) String() string {
-	return oe.Token.Literal
-}
-
-func (oe *InfixExpression) TokenLiteral() string {
 	var out bytes.Buffer
 
 	out.WriteString("(")
-	out.WriteString(oe.Right.String())
+	out.WriteString(oe.Left.String())
 	out.WriteString(" " + oe.Operator + " ")
 	out.WriteString(oe.Right.String())
 	out.WriteString(")")
 
 	return out.String()
+}
+
+func (oe *InfixExpression) TokenLiteral() string {
+	return oe.Token.Literal
 }
 
 func (*InfixExpression) expressionNode() {}
@@ -180,10 +180,6 @@ type PrefixExpression struct {
 }
 
 func (pe *PrefixExpression) String() string {
-	return pe.Token.Literal
-}
-
-func (pe *PrefixExpression) TokenLiteral() string {
 	var out bytes.Buffer
 
 	out.WriteString("(")
@@ -192,6 +188,10 @@ func (pe *PrefixExpression) TokenLiteral() string {
 	out.WriteString(")")
 
 	return out.String()
+}
+
+func (pe *PrefixExpression) TokenLiteral() string {
+	return pe.Token.Literal
 }
 
 func (*PrefixExpression) expressionNode() {}
