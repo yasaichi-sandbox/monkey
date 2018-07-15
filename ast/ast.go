@@ -117,6 +117,21 @@ func (rs *ReturnStatement) TokenLiteral() string {
 
 func (*ReturnStatement) statementNode() {}
 
+type Boolean struct {
+	Token token.Token
+	Value bool
+}
+
+func (b *Boolean) String() string {
+	return b.Token.Literal
+}
+
+func (b *Boolean) TokenLiteral() string {
+	return b.Token.Literal
+}
+
+func (*Boolean) expressionNode() {}
+
 type Identifier struct {
 	Token token.Token
 	Value string
