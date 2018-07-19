@@ -60,6 +60,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.TRUE, p.parseBoolean)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
+	p.registerPrefix(token.IF, p.parseIfExpression)
 
 	p.infixParseFns = map[token.TokenType]infixParseFn{}
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -85,7 +86,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 	program := &ast.Program{}
 	program.Statements = []ast.Statement{} // NOTE: sliceは参照型なのでゼロ値はnilのため
 
-	for p.curToken.Type != token.EOF {
+	for !p.curTokenIs(token.EOF) {
 		stmt := p.parseStatement()
 		if stmt != nil {
 			program.Statements = append(program.Statements, stmt)
@@ -133,6 +134,27 @@ func (p *Parser) noPrefixParseFnError(t token.TokenType) {
 //             └ p.curToken
 func (p *Parser) parseBoolean() ast.Expression {
 	return &ast.Boolean{Token: p.curToken, Value: p.curTokenIs(token.TRUE)}
+}
+
+// { nogizaka46; keyakizaka46; }
+// └ p.curToken
+func (p *Parser) parseBlockStatement() *ast.BlockStatement {
+	block := &ast.BlockStatement{
+		Token:      p.curToken,
+		Statements: []ast.Statement{}, // NOTE: スライスは参照型なのでゼロ値はnil
+	}
+	p.nextToken()
+
+	for !p.curTokenIs(token.RBRACE) && !p.curTokenIs(token.EOF) {
+		stmt := p.parseStatement()
+		if stmt != nil {
+			block.Statements = append(block.Statements, stmt)
+		}
+
+		p.nextToken()
+	}
+
+	return block
 }
 
 func (p *Parser) parseExpression(precedence int) ast.Expression {
@@ -193,6 +215,42 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 //     └ p.curToken
 func (p *Parser) parseIdentifier() ast.Expression {
 	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+}
+
+// if (sakamichi > akb) { true } else { false }
+//  └ p.curToken
+func (p *Parser) parseIfExpression() ast.Expression {
+	expression := &ast.IfExpression{Token: p.curToken}
+
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	p.nextToken() // NOTE: `p.curToken`はまだ`(`の位置にあるのでひとつ進める
+	expression.Condition = p.parseExpression(LOWEST)
+
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+
+	expression.Consequence = p.parseBlockStatement()
+
+	// NOTE: `p.expectPeek`は期待したトークンでないときに解析エラー扱いするので、ここで
+	// 使うべきなのは`p.peekTokenIs`になる
+	if p.peekTokenIs(token.ELSE) {
+		p.nextToken()
+
+		if !p.expectPeek(token.LBRACE) {
+			return nil
+		}
+
+		expression.Alternative = p.parseBlockStatement()
+	}
+
+	return expression
 }
 
 // keyakizaka * 46
