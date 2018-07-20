@@ -3,6 +3,7 @@ package ast
 import (
 	"bytes"
 	"github.com/yasaichi-sandbox/monkey/token"
+	"strings"
 )
 
 type Node interface {
@@ -152,6 +153,32 @@ func (b *Boolean) TokenLiteral() string {
 }
 
 func (*Boolean) expressionNode() {}
+
+type FunctionaLiteral struct {
+	Token      token.Token
+	Parameters []*Identifier
+	Body       *BlockStatement
+}
+
+func (fl *FunctionaLiteral) String() string {
+	var out bytes.Buffer
+
+	params := []string{}
+
+	out.WriteString(fl.TokenLiteral())
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(")")
+	out.WriteString(fl.Body.String())
+
+	return out.String()
+}
+
+func (fl *FunctionaLiteral) TokenLiteral() string {
+	return fl.Token.Literal
+}
+
+func (*FunctionaLiteral) expressionNode() {}
 
 type Identifier struct {
 	Token token.Token
