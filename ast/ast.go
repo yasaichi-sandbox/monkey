@@ -154,13 +154,13 @@ func (b *Boolean) TokenLiteral() string {
 
 func (*Boolean) expressionNode() {}
 
-type FunctionaLiteral struct {
+type FunctionLiteral struct {
 	Token      token.Token
 	Parameters []*Identifier
 	Body       *BlockStatement
 }
 
-func (fl *FunctionaLiteral) String() string {
+func (fl *FunctionLiteral) String() string {
 	var out bytes.Buffer
 
 	params := []string{}
@@ -174,11 +174,11 @@ func (fl *FunctionaLiteral) String() string {
 	return out.String()
 }
 
-func (fl *FunctionaLiteral) TokenLiteral() string {
+func (fl *FunctionLiteral) TokenLiteral() string {
 	return fl.Token.Literal
 }
 
-func (*FunctionaLiteral) expressionNode() {}
+func (*FunctionLiteral) expressionNode() {}
 
 type Identifier struct {
 	Token token.Token

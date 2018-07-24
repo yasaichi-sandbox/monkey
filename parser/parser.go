@@ -61,6 +61,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.IF, p.parseIfExpression)
+	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 
 	p.infixParseFns = map[token.TokenType]infixParseFn{}
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -196,6 +197,56 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	}
 
 	return stmt
+}
+
+// let sakamichi = fn(ngzk, kykzk) { ngzk + kykzk; }
+//                  └ p.curToken
+func (p *Parser) parseFunctionLiteral() ast.Expression {
+	lit := &ast.FunctionLiteral{Token: p.curToken}
+
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	lit.Parameters = p.parseFunctionParameters()
+
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+
+	lit.Body = p.parseBlockStatement()
+
+	return lit
+}
+
+// fn(ngzk, kykzk) { ngzk + kykzk; }
+//   └ p.curToken
+func (p *Parser) parseFunctionParameters() []*ast.Identifier {
+	indentifiers := []*ast.Identifier{}
+
+	// NOTE: パラメータなしへの対応を忘れていた。くやしい。
+	if p.peekTokenIs(token.RPAREN) {
+		p.nextToken()
+		return indentifiers
+	}
+
+	p.nextToken() // NOTE: この時点で`p.curToken`は第一引数の場所
+	ident := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	indentifiers = append(indentifiers, ident)
+
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		p.nextToken() // NOTE: この時点で`p.curToken`は第n(>=2)引数の場所
+
+		ident := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+		indentifiers = append(indentifiers, ident)
+	}
+
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	return indentifiers
 }
 
 // AKB * (48 + 1)
