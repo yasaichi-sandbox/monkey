@@ -154,6 +154,33 @@ func (b *Boolean) TokenLiteral() string {
 
 func (*Boolean) expressionNode() {}
 
+type CallExpression struct {
+	Token     token.Token
+	Function  Expression // FunctionLiteral or Identifier
+	Arguments []Expression
+}
+
+func (ce *CallExpression) String() string {
+	args := []string{}
+	for _, a := range ce.Arguments {
+		args = append(args, a.String())
+	}
+
+	var out bytes.Buffer
+	out.WriteString(ce.Function.String())
+	out.WriteString("(")
+	out.WriteString(strings.Join(args, ", "))
+	out.WriteString(")")
+
+	return out.String()
+}
+
+func (ce *CallExpression) TokenLiteral() string {
+	return ce.Token.Literal
+}
+
+func (*CallExpression) expressionNode() {}
+
 type FunctionLiteral struct {
 	Token      token.Token
 	Parameters []*Identifier
