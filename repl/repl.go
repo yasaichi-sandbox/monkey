@@ -3,6 +3,7 @@ package repl
 import (
 	"bufio"
 	"fmt"
+	"github.com/yasaichi-sandbox/monkey/evaluator"
 	"github.com/yasaichi-sandbox/monkey/lexer"
 	"github.com/yasaichi-sandbox/monkey/parser"
 	"io"
@@ -30,7 +31,12 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		fmt.Fprintln(out, program.String())
+		evaluated := evaluator.Eval(program)
+		if evaluated == nil {
+			continue
+		}
+
+		fmt.Fprintln(out, evaluated.Inspect())
 	}
 }
 
