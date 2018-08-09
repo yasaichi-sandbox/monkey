@@ -17,22 +17,32 @@ func Eval(node ast.Node) object.Object {
 	switch node := node.(type) {
 	case *ast.Program:
 		return evalStatements(node.Statements)
+	// NOTE: 複数の型を列挙すると`node`の型が1つに定まらないので、`interface{}`型として扱われる。
+	// このため、*ast.Programのときと全く同じ処理を2度記述している。
+	case *ast.BlockStatement:
+		return evalStatements(node.Statements)
 	case *ast.ExpressionStatement:
 		return Eval(node.Expression)
+	case *ast.IfExpression:
+		return evalIfExpression(node)
+	case *ast.InfixExpression:
+		left := Eval(node.Left)
+		right := Eval(node.Right)
+		return evalInfixExpression(node.Operator, left, right)
 	case *ast.PrefixExpression:
 		right := Eval(node.Right)
 		return evalPrefixExpression(node.Operator, right)
 	case *ast.Boolean:
 		return nativeBoolToBooleanObject(node.Value)
-	case *ast.InfixExpression:
-		left := Eval(node.Left)
-		right := Eval(node.Right)
-		return evalInfixExpression(node.Operator, left, right)
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
 	}
 
 	return nil
+}
+
+func isTruthy(obj object.Object) bool {
+	return obj != FALSE && obj != NULL
 }
 
 func evalBangOperatorExpression(right object.Object) object.Object {
@@ -47,6 +57,18 @@ func evalBangOperatorExpression(right object.Object) object.Object {
 
 	// NOTE: truthy values
 	return FALSE
+}
+
+func evalIfExpression(ie *ast.IfExpression) object.Object {
+	condition := Eval(ie.Condition)
+
+	if isTruthy(condition) {
+		return Eval(ie.Consequence)
+	} else if ie.Alternative == nil {
+		return NULL
+	} else {
+		return Eval(ie.Alternative)
+	}
 }
 
 func evalInfixExpression(operator string, left, right object.Object) object.Object {
