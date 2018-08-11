@@ -16,13 +16,14 @@ var (
 func Eval(node ast.Node) object.Object {
 	switch node := node.(type) {
 	case *ast.Program:
-		return evalStatements(node.Statements)
-	// NOTE: 複数の型を列挙すると`node`の型が1つに定まらないので、`interface{}`型として扱われる。
-	// このため、*ast.Programのときと全く同じ処理を2度記述している。
+		return evalProgram(node)
 	case *ast.BlockStatement:
-		return evalStatements(node.Statements)
+		return evalBlockStatement(node)
 	case *ast.ExpressionStatement:
 		return Eval(node.Expression)
+	case *ast.ReturnStatement:
+		val := Eval(node.ReturnValue)
+		return &object.ReturnValue{Value: val}
 	case *ast.IfExpression:
 		return evalIfExpression(node)
 	case *ast.InfixExpression:
@@ -57,6 +58,21 @@ func evalBangOperatorExpression(right object.Object) object.Object {
 
 	// NOTE: truthy values
 	return FALSE
+}
+
+func evalBlockStatement(block *ast.BlockStatement) object.Object {
+	var result object.Object
+
+	for _, statement := range block.Statements {
+		result = Eval(statement)
+
+		// NOTE: この`nil`チェックは近いうちに消される気がする
+		if result != nil && result.Type() == object.RETURN_VALUE_OBJ {
+			return result
+		}
+	}
+
+	return result
 }
 
 func evalIfExpression(ie *ast.IfExpression) object.Object {
@@ -130,12 +146,15 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 	return NULL // NOTE: エラー処理を実装したらNULLを返す以外の実装になるかもしれない
 }
 
-func evalStatements(stmts []ast.Statement) object.Object {
+func evalProgram(program *ast.Program) object.Object {
 	var result object.Object
 
-	// NOTE: 副作用を与えた後に最後の評価結果を返す、がやりたいのならもっと良い書き方がある気がする
-	for _, statement := range stmts {
+	for _, statement := range program.Statements {
 		result = Eval(statement)
+
+		if returnValue, ok := result.(*object.ReturnValue); ok {
+			return returnValue.Value
+		}
 	}
 
 	return result
