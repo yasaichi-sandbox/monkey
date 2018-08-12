@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"github.com/yasaichi-sandbox/monkey/ast"
 	"github.com/yasaichi-sandbox/monkey/object"
 )
@@ -65,9 +66,12 @@ func evalBlockStatement(block *ast.BlockStatement) object.Object {
 
 	for _, statement := range block.Statements {
 		result = Eval(statement)
+		if result == nil { // NOTE: この`nil`チェックは近いうちに消される気がする
+			continue
+		}
 
-		// NOTE: この`nil`チェックは近いうちに消される気がする
-		if result != nil && result.Type() == object.RETURN_VALUE_OBJ {
+		switch result.Type() {
+		case object.ERROR_OBJ, object.RETURN_VALUE_OBJ:
 			return result
 		}
 	}
@@ -95,9 +99,24 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 		return nativeBoolToBooleanObject(left == right)
 	case operator == "!=":
 		return nativeBoolToBooleanObject(left != right)
+	// NOTE: ここから下に入るパターンは次の通り
+	// * leftとrightのどちらかがInteger
+	// => ==/!=以外の演算を異なるType同士で試みているので、type mismatch
+	// * leftとrightのどちらもIntegerでない = monkeyの場合、BooleanかNull
+	//   * BooleanとNull  => （同上の理由で）type mismatch
+	//   * どちらもBoolean => ==/!=以外は未定義なので、unknown operator
+	//   * どちらもNull    => ==/!=以外は未定義なので、unknown operator
+	case left.Type() != right.Type():
+		return newError(
+			"type mismatch: %s %s %s",
+			left.Type(), operator, right.Type(),
+		)
 	}
 
-	return NULL
+	return newError(
+		"unknown operator: %s %s %s",
+		left.Type(), operator, right.Type(),
+	)
 }
 
 func evalIntegerInfixExpression(operator string, left, right object.Object) object.Object {
@@ -123,12 +142,15 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 		return nativeBoolToBooleanObject(leftVal != rightVal)
 	}
 
-	return NULL
+	return newError(
+		"unknown operator: %s %s %s",
+		left.Type(), operator, right.Type(),
+	)
 }
 
 func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
 	if right.Type() != object.INTEGER_OBJ {
-		return NULL
+		return newError("unknown operator: -%s", right.Type())
 	}
 
 	value := right.(*object.Integer).Value
@@ -143,7 +165,7 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 		return evalMinusPrefixOperatorExpression(right)
 	}
 
-	return NULL // NOTE: エラー処理を実装したらNULLを返す以外の実装になるかもしれない
+	return newError("unknown operator: %s%s", operator, right.Type())
 }
 
 func evalProgram(program *ast.Program) object.Object {
@@ -152,8 +174,11 @@ func evalProgram(program *ast.Program) object.Object {
 	for _, statement := range program.Statements {
 		result = Eval(statement)
 
-		if returnValue, ok := result.(*object.ReturnValue); ok {
-			return returnValue.Value
+		switch result := result.(type) {
+		case *object.Error:
+			return result
+		case *object.ReturnValue:
+			return result.Value
 		}
 	}
 
@@ -166,4 +191,8 @@ func nativeBoolToBooleanObject(input bool) *object.Boolean {
 	}
 
 	return FALSE
+}
+
+func newError(format string, a ...interface{}) *object.Error {
+	return &object.Error{Message: fmt.Sprintf(format, a...)}
 }
