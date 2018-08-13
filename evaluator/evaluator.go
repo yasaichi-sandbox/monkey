@@ -24,15 +24,31 @@ func Eval(node ast.Node) object.Object {
 		return Eval(node.Expression)
 	case *ast.ReturnStatement:
 		val := Eval(node.ReturnValue)
+		if isError(val) {
+			return val
+		}
+
 		return &object.ReturnValue{Value: val}
 	case *ast.IfExpression:
 		return evalIfExpression(node)
 	case *ast.InfixExpression:
 		left := Eval(node.Left)
+		if isError(left) {
+			return left
+		}
+
 		right := Eval(node.Right)
+		if isError(right) {
+			return left
+		}
+
 		return evalInfixExpression(node.Operator, left, right)
 	case *ast.PrefixExpression:
 		right := Eval(node.Right)
+		if isError(right) {
+			return right
+		}
+
 		return evalPrefixExpression(node.Operator, right)
 	case *ast.Boolean:
 		return nativeBoolToBooleanObject(node.Value)
@@ -81,6 +97,9 @@ func evalBlockStatement(block *ast.BlockStatement) object.Object {
 
 func evalIfExpression(ie *ast.IfExpression) object.Object {
 	condition := Eval(ie.Condition)
+	if isError(condition) {
+		return condition
+	}
 
 	if isTruthy(condition) {
 		return Eval(ie.Consequence)
@@ -183,6 +202,15 @@ func evalProgram(program *ast.Program) object.Object {
 	}
 
 	return result
+}
+
+func isError(obj object.Object) bool {
+	// NOTE: interfaceに対するnilチェックをせずにメソッド呼び出しを書きがちなので気をつけたい
+	if obj == nil {
+		return false
+	}
+
+	return obj.Type() == object.ERROR_OBJ
 }
 
 func nativeBoolToBooleanObject(input bool) *object.Boolean {
