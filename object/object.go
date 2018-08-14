@@ -52,3 +52,21 @@ type ReturnValue struct {
 
 func (rv *ReturnValue) Inspect() string { return rv.Value.Inspect() }
 func (*ReturnValue) Type() ObjectType   { return RETURN_VALUE_OBJ }
+
+type Environment struct {
+	store map[string]Object
+}
+
+func NewEnvironment() *Environment {
+	return &Environment{store: map[string]Object{}}
+}
+
+func (e *Environment) Get(name string) (Object, bool) {
+	obj, ok := e.store[name]
+	return obj, ok
+}
+
+func (e *Environment) Set(name string, val Object) Object {
+	e.store[name] = val
+	return val
+}
