@@ -59,6 +59,12 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalPrefixExpression(node.Operator, right)
 	case *ast.Boolean:
 		return nativeBoolToBooleanObject(node.Value)
+	case *ast.FunctionLiteral:
+		return &object.Function{
+			Parameters: node.Parameters,
+			Body:       node.Body,
+			Env:        env,
+		}
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
 	case *ast.IntegerLiteral:

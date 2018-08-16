@@ -1,7 +1,10 @@
 package object
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/yasaichi-sandbox/monkey/ast"
+	"strings"
 )
 
 type ObjectType string
@@ -12,6 +15,7 @@ const (
 	NULL_OBJ         = "NULL"
 	RETURN_VALUE_OBJ = "RETURN_VALUE"
 	ERROR_OBJ        = "ERROR"
+	FUNCTION_OBJ     = "FUNCTION"
 )
 
 type Object interface {
@@ -32,6 +36,30 @@ type Error struct {
 
 func (e *Error) Inspect() string { return "ERROR: " + e.Message }
 func (*Error) Type() ObjectType  { return ERROR_OBJ }
+
+type Function struct {
+	Parameters []*ast.Identifier
+	Body       *ast.BlockStatement
+	Env        *Environment
+}
+
+func (f *Function) Inspect() string {
+	params := []string{}
+	for _, p := range f.Parameters {
+		params = append(params, p.String())
+	}
+
+	buf := &bytes.Buffer{}
+	fmt.Fprintf(
+		buf,
+		"fn(%s) {\n%s\n}",
+		strings.Join(params, ", "),
+		f.Body.String(),
+	)
+
+	return buf.String()
+}
+func (*Function) Type() ObjectType { return FUNCTION_OBJ }
 
 type Integer struct {
 	Value int64
