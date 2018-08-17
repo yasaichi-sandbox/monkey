@@ -83,6 +83,14 @@ func (*ReturnValue) Type() ObjectType   { return RETURN_VALUE_OBJ }
 
 type Environment struct {
 	store map[string]Object
+	outer *Environment
+}
+
+func NewEnclosedEnvironment(outer *Environment) *Environment {
+	env := NewEnvironment()
+	env.outer = outer
+
+	return env
 }
 
 func NewEnvironment() *Environment {
@@ -90,7 +98,12 @@ func NewEnvironment() *Environment {
 }
 
 func (e *Environment) Get(name string) (Object, bool) {
-	obj, ok := e.store[name]
+	if obj, ok := e.store[name]; ok || e.outer == nil {
+		return obj, ok
+	}
+
+	// NOTE: Find value recursively
+	obj, ok := e.outer.Get(name)
 	return obj, ok
 }
 
