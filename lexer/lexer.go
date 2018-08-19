@@ -69,6 +69,8 @@ func (l *Lexer) NextToken() token.Token {
 		tok = token.Token{Type: token.RBRACE, Literal: string(l.ch)}
 	case 0:
 		tok = token.Token{Type: token.EOF, Literal: ""}
+	case '"':
+		tok = token.Token{Type: token.STRING, Literal: l.readString()}
 	default:
 		if isLetter(l.ch) {
 			tok.Literal = l.readIdentifier()
@@ -124,6 +126,21 @@ func (l *Lexer) readIdentifier() string {
 	}
 
 	// NOTE: for文から抜けた時のl.chは識別子/キーワードではないので、その1文字前までを取り出す
+	return l.input[position:l.position]
+}
+
+func (l *Lexer) readString() string {
+	position := l.position + 1
+
+	for {
+		l.readChar()
+
+		// NOTE: 最初書いたときにNULL文字についての考慮を忘れていた
+		if l.ch == '"' || l.ch == 0 {
+			break
+		}
+	}
+
 	return l.input[position:l.position]
 }
 
