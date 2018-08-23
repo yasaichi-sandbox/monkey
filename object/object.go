@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+type BuiltinFunction func(args ...Object) Object
 type ObjectType string
 
 const (
@@ -17,6 +18,7 @@ const (
 	ERROR_OBJ        = "ERROR"
 	FUNCTION_OBJ     = "FUNCTION"
 	STRING_OBJ       = "STRING"
+	BUILTIN_OBJ      = "BUILTIN"
 )
 
 type Object interface {
@@ -30,6 +32,13 @@ type Boolean struct {
 
 func (b *Boolean) Inspect() string { return fmt.Sprintf("%t", b.Value) }
 func (*Boolean) Type() ObjectType  { return BOOLEAN_OBJ }
+
+type Builtin struct {
+	Fn BuiltinFunction
+}
+
+func (*Builtin) Inspect() string  { return "builtin function" }
+func (*Builtin) Type() ObjectType { return BUILTIN_OBJ }
 
 type Error struct {
 	Message string
