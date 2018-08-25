@@ -33,11 +33,11 @@ func (l *Lexer) NextToken() token.Token {
 			break
 		}
 
-		tok = token.Token{Type: token.ASSIGN, Literal: string(l.ch)}
+		tok = newToken(token.ASSIGN, l.ch)
 	case '+':
-		tok = token.Token{Type: token.PLUS, Literal: string(l.ch)}
+		tok = newToken(token.PLUS, l.ch)
 	case '-':
-		tok = token.Token{Type: token.MINUS, Literal: string(l.ch)}
+		tok = newToken(token.MINUS, l.ch)
 	case '!':
 		if l.peekChar() == '=' {
 			l.readChar()
@@ -46,27 +46,31 @@ func (l *Lexer) NextToken() token.Token {
 			break
 		}
 
-		tok = token.Token{Type: token.BANG, Literal: string(l.ch)}
+		tok = newToken(token.BANG, l.ch)
 	case '*':
-		tok = token.Token{Type: token.ASTERISK, Literal: string(l.ch)}
+		tok = newToken(token.ASTERISK, l.ch)
 	case '/':
-		tok = token.Token{Type: token.SLASH, Literal: string(l.ch)}
+		tok = newToken(token.SLASH, l.ch)
 	case '<':
-		tok = token.Token{Type: token.LT, Literal: string(l.ch)}
+		tok = newToken(token.LT, l.ch)
 	case '>':
-		tok = token.Token{Type: token.GT, Literal: string(l.ch)}
+		tok = newToken(token.GT, l.ch)
 	case ',':
-		tok = token.Token{Type: token.COMMA, Literal: string(l.ch)}
+		tok = newToken(token.COMMA, l.ch)
 	case ';':
-		tok = token.Token{Type: token.SEMICOLON, Literal: string(l.ch)}
+		tok = newToken(token.SEMICOLON, l.ch)
 	case '(':
-		tok = token.Token{Type: token.LPAREN, Literal: string(l.ch)}
+		tok = newToken(token.LPAREN, l.ch)
 	case ')':
-		tok = token.Token{Type: token.RPAREN, Literal: string(l.ch)}
+		tok = newToken(token.RPAREN, l.ch)
 	case '{':
-		tok = token.Token{Type: token.LBRACE, Literal: string(l.ch)}
+		tok = newToken(token.LBRACE, l.ch)
 	case '}':
-		tok = token.Token{Type: token.RBRACE, Literal: string(l.ch)}
+		tok = newToken(token.RBRACE, l.ch)
+	case '[':
+		tok = newToken(token.LBRACKET, l.ch)
+	case ']':
+		tok = newToken(token.RBRACKET, l.ch)
 	case 0:
 		tok = token.Token{Type: token.EOF, Literal: ""}
 	case '"':
@@ -86,6 +90,10 @@ func (l *Lexer) NextToken() token.Token {
 
 	l.readChar()
 	return tok
+}
+
+func newToken(tokenType token.TokenType, ch byte) token.Token {
+	return token.Token{Type: tokenType, Literal: string(ch)}
 }
 
 func (l *Lexer) peekChar() byte {
