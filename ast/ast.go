@@ -2,6 +2,7 @@ package ast
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/yasaichi-sandbox/monkey/token"
 	"strings"
 )
@@ -138,6 +139,26 @@ func (rs *ReturnStatement) TokenLiteral() string {
 }
 
 func (*ReturnStatement) statementNode() {}
+
+type ArrayLiteral struct {
+	Token    token.Token
+	Elements []Expression
+}
+
+func (al *ArrayLiteral) String() string {
+	elements := []string{}
+	for _, el := range al.Elements {
+		elements = append(elements, el.String())
+	}
+
+	return fmt.Sprintf("[%s]", strings.Join(elements, ", "))
+}
+
+func (al *ArrayLiteral) TokenLiteral() string {
+	return al.Token.Literal
+}
+
+func (*ArrayLiteral) expressionNode() {}
 
 type Boolean struct {
 	Token token.Token

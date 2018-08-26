@@ -64,6 +64,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.IF, p.parseIfExpression)
 	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
+	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
 
 	p.infixParseFns = map[token.TokenType]infixParseFn{}
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -132,6 +133,15 @@ func (p *Parser) nextToken() {
 func (p *Parser) noPrefixParseFnError(t token.TokenType) {
 	msg := fmt.Sprintf("no prefix parse function for %s found", t)
 	p.errors = append(p.errors, msg)
+}
+
+// [46, 48, 49]
+// └ p.curToken
+func (p *Parser) parseArrayLiteral() ast.Expression {
+	array := &ast.ArrayLiteral{Token: p.curToken}
+	array.Elements = p.parseExpressionList(token.RBRACKET)
+
+	return array
 }
 
 // 46 > 48 == true;
@@ -204,38 +214,38 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 
 // sakamichi(46, 46)
 //          └ p.curToken
-func (p *Parser) parseCallArguments() []ast.Expression {
-	args := []ast.Expression{}
+func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
+	exp := &ast.CallExpression{Token: p.curToken, Function: function}
+	exp.Arguments = p.parseExpressionList(token.RPAREN)
 
-	if p.peekTokenIs(token.RPAREN) {
-		p.nextToken()
-		return args
-	}
-
-	p.nextToken() // NOTE: この時点で`p.curToken`は第一引数の場所
-	args = append(args, p.parseExpression(LOWEST))
-
-	for p.peekTokenIs(token.COMMA) {
-		p.nextToken()
-		p.nextToken() // NOTE: この時点で`p.curToken`は第n(>=2)引数の場所
-
-		args = append(args, p.parseExpression(LOWEST))
-	}
-
-	if !p.expectPeek(token.RPAREN) {
-		return nil
-	}
-
-	return args
+	return exp
 }
 
 // sakamichi(46, 46)
 //          └ p.curToken
-func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
-	exp := &ast.CallExpression{Token: p.curToken, Function: function}
-	exp.Arguments = p.parseCallArguments()
+func (p *Parser) parseExpressionList(end token.TokenType) []ast.Expression {
+	list := []ast.Expression{}
 
-	return exp
+	if p.peekTokenIs(end) {
+		p.nextToken()
+		return list
+	}
+
+	p.nextToken() // NOTE: この時点で`p.curToken`は第1要素の場所
+	list = append(list, p.parseExpression(LOWEST))
+
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		p.nextToken() // NOTE: この時点で`p.curToken`は第n(>=2)要素の場所
+
+		list = append(list, p.parseExpression(LOWEST))
+	}
+
+	if !p.expectPeek(end) {
+		return nil
+	}
+
+	return list
 }
 
 // let sakamichi = fn(ngzk, kykzk) { ngzk + kykzk; }
