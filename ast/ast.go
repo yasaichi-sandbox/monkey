@@ -277,6 +277,22 @@ func (ie *IfExpression) TokenLiteral() string {
 
 func (*IfExpression) expressionNode() {}
 
+type IndexExpression struct {
+	Token token.Token // '['トークン
+	Left  Expression
+	Index Expression
+}
+
+func (ie *IndexExpression) String() string {
+	return fmt.Sprintf("(%s[%s])", ie.Left.String(), ie.Index.String())
+}
+
+func (ie *IndexExpression) TokenLiteral() string {
+	return ie.Token.Literal
+}
+
+func (*IndexExpression) expressionNode() {}
+
 type InfixExpression struct {
 	Token    token.Token // 演算子トークン、例えば「+」
 	Left     Expression
