@@ -19,12 +19,27 @@ const (
 	FUNCTION_OBJ     = "FUNCTION"
 	STRING_OBJ       = "STRING"
 	BUILTIN_OBJ      = "BUILTIN"
+	ARRAY_OBJ        = "ARRAY"
 )
 
 type Object interface {
 	Type() ObjectType
 	Inspect() string
 }
+
+type Array struct {
+	Elements []Object
+}
+
+func (a *Array) Inspect() string {
+	elements := []string{}
+	for _, e := range a.Elements {
+		elements = append(elements, e.Inspect())
+	}
+
+	return fmt.Sprintf("[%s]", strings.Join(elements, ", "))
+}
+func (*Array) Type() ObjectType { return ARRAY_OBJ }
 
 type Boolean struct {
 	Value bool
