@@ -86,6 +86,18 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		}
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
+	case *ast.IndexExpression:
+		left := Eval(node.Left, env)
+		if isError(left) {
+			return left
+		}
+
+		index := Eval(node.Index, env)
+		if isError(index) {
+			return index
+		}
+
+		return evalIndexExpression(left, index)
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
 	case *ast.StringLiteral:
@@ -107,6 +119,17 @@ func applyFunction(fn object.Object, args []object.Object) object.Object {
 	}
 
 	return newError("not a function: %s", fn.Type())
+}
+
+func evalArrayIndexExpression(left, index object.Object) object.Object {
+	elements := left.(*object.Array).Elements
+	i := index.(*object.Integer).Value
+
+	if i < 0 || i >= int64(len(elements)) {
+		return NULL
+	}
+
+	return elements[i]
 }
 
 func evalBangOperatorExpression(right object.Object) object.Object {
@@ -181,6 +204,15 @@ func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Obje
 	} else {
 		return Eval(ie.Alternative, env)
 	}
+}
+
+func evalIndexExpression(left, index object.Object) object.Object {
+	switch {
+	case left.Type() == object.ARRAY_OBJ && index.Type() == object.INTEGER_OBJ:
+		return evalArrayIndexExpression(left, index)
+	}
+
+	return newError("index operator not supported: %s", left.Type())
 }
 
 func evalInfixExpression(operator string, left, right object.Object) object.Object {
