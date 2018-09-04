@@ -66,4 +66,31 @@ var builtins = map[string]*object.Builtin{
 			)
 		},
 	},
+	"rest": &object.Builtin{
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+
+			if args[0].Type() != object.ARRAY_OBJ {
+				return newError(
+					"argument to `rest` must be ARRAY, got %s",
+					args[0].Type(),
+				)
+			}
+
+			array := args[0].(*object.Array)
+			length := len(array.Elements)
+			if length == 0 {
+				return NULL
+			}
+
+			// 第2引数がlength, 第3引数がcapacity。capを省略するとlenと同じ値が設定される
+			newElements := make([]object.Object, length-1)
+			// NOTE: この場合ポインタの配列なので、`copy`でdeep copyする必要があるのか謎だった
+			copy(newElements, array.Elements[1:])
+
+			return &object.Array{Elements: newElements}
+		},
+	},
 }
