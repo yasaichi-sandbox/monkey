@@ -66,6 +66,30 @@ var builtins = map[string]*object.Builtin{
 			)
 		},
 	},
+	"push": &object.Builtin{
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("wrong number of arguments. got=%d, want=2", len(args))
+			}
+
+			// NOTE: 第2引数はどんなオブジェクトでも良いのでチェックの必要はない
+			if args[0].Type() != object.ARRAY_OBJ {
+				return newError(
+					"argument to `push` must be ARRAY, got %s",
+					args[0].Type(),
+				)
+			}
+
+			array := args[0].(*object.Array)
+			length := len(array.Elements)
+
+			newElements := make([]object.Object, length+1)
+			copy(newElements, array.Elements)
+			newElements[length] = args[1]
+
+			return &object.Array{Elements: newElements}
+		},
+	},
 	"rest": &object.Builtin{
 		Fn: func(args ...object.Object) object.Object {
 			if len(args) != 1 {
