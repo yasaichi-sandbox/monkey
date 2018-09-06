@@ -232,6 +232,26 @@ func (fl *FunctionLiteral) TokenLiteral() string {
 
 func (*FunctionLiteral) expressionNode() {}
 
+type HashLiteral struct {
+	Token token.Token
+	Pairs map[Expression]Expression
+}
+
+func (hl *HashLiteral) String() string {
+	pairs := []string{}
+	for key, value := range hl.Pairs {
+		pairs = append(pairs, key.String()+":"+value.String())
+	}
+
+	return fmt.Sprintf("{%s}", strings.Join(pairs, ", "))
+}
+
+func (hl *HashLiteral) TokenLiteral() string {
+	return hl.Token.Literal
+}
+
+func (*HashLiteral) expressionNode() {}
+
 type Identifier struct {
 	Token token.Token
 	Value string
