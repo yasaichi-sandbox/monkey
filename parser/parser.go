@@ -67,6 +67,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
 	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
+	p.registerPrefix(token.LBRACE, p.parseHashLiteral)
 
 	p.infixParseFns = map[token.TokenType]infixParseFn{}
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -312,6 +313,39 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 	}
 
 	return exp
+}
+
+// { "keyakizaka": 46 }
+// └ p.curToken
+func (p *Parser) parseHashLiteral() ast.Expression {
+	hash := &ast.HashLiteral{Pairs: map[ast.Expression]ast.Expression{}}
+	if p.peekTokenIs(token.RBRACE) {
+		p.nextToken()
+		return hash
+	}
+
+	for {
+		p.nextToken() // NOTE: この時点で`p.curToken`は第n要素のキー
+		key := p.parseExpression(LOWEST)
+
+		if !p.expectPeek(token.COLON) {
+			return nil
+		}
+
+		p.nextToken() // NOTE: この時点で`p.curToken`は第n要素の値
+		hash.Pairs[key] = p.parseExpression(LOWEST)
+
+		if !p.peekTokenIs(token.COMMA) {
+			break
+		}
+		p.nextToken()
+	}
+
+	if !p.expectPeek(token.RBRACE) {
+		return nil
+	}
+
+	return hash
 }
 
 // keyakizaka * 46
