@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/yasaichi-sandbox/monkey/ast"
+	"hash/fnv"
 	"strings"
 )
 
@@ -27,6 +28,11 @@ type Object interface {
 	Inspect() string
 }
 
+type HashKey struct {
+	Type  ObjectType
+	Value uint64
+}
+
 type Array struct {
 	Elements []Object
 }
@@ -45,6 +51,17 @@ type Boolean struct {
 	Value bool
 }
 
+func (b *Boolean) HashKey() HashKey {
+	var value uint64
+
+	if b.Value {
+		value = 1
+	} else {
+		value = 0
+	}
+
+	return HashKey{Type: b.Type(), Value: value}
+}
 func (b *Boolean) Inspect() string { return fmt.Sprintf("%t", b.Value) }
 func (*Boolean) Type() ObjectType  { return BOOLEAN_OBJ }
 
@@ -90,6 +107,12 @@ type Integer struct {
 	Value int64
 }
 
+func (i *Integer) HashKey() HashKey {
+	// NOTE: `i.Value`が表現できる負の値（int64なので2**63-1まで）は`uint64()`とすると
+	// int64では表現できない2**63 ~ 2**64-1にマッピングされる（＝int64で表現できる正の値と
+	// 被ることはない）ので、ハッシュ値を計算する用途においてはこれでも大丈夫。なんだけども、、
+	return HashKey{Type: i.Type(), Value: uint64(i.Value)}
+}
 func (i *Integer) Inspect() string { return fmt.Sprintf("%d", i.Value) }
 func (*Integer) Type() ObjectType  { return INTEGER_OBJ }
 
@@ -110,6 +133,12 @@ type String struct {
 	Value string
 }
 
+func (s *String) HashKey() HashKey {
+	h := fnv.New64a()
+	h.Write([]byte(s.Value))
+
+	return HashKey{Type: s.Type(), Value: h.Sum64()}
+}
 func (s *String) Inspect() string { return s.Value }
 func (*String) Type() ObjectType  { return STRING_OBJ }
 
