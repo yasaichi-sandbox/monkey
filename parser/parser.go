@@ -390,7 +390,7 @@ func (p *Parser) parseIfExpression() ast.Expression {
 	return expression
 }
 
-// keyakizaka[46]
+// keyakizaka[46] or nogizaka["46"]
 //           └ p.curToken
 func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 	exp := &ast.IndexExpression{Token: p.curToken, Left: left}
